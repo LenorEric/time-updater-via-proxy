@@ -248,7 +248,7 @@ def get_proxy_for_url(hSession, url: str):
     return pinfo
 
 
-def http_date_via_proxy(hSession, url: str, timeout_ms=5000):
+def http_date_via_proxy(hSession, url: str, pinfo, timeout_ms=5000):
     # Parse URL (https only)
     parts = urlsplit(url)
     if parts.scheme.lower() != "https":
@@ -284,8 +284,6 @@ def http_date_via_proxy(hSession, url: str, timeout_ms=5000):
             if not hReq:
                 continue
             try:
-                # Attach per-URL proxy
-                pinfo = get_proxy_for_url(hSession, url)
                 if not winhttp.WinHttpSetOption(hReq, WINHTTP_OPTION_PROXY, C.byref(pinfo), C.sizeof(pinfo)):
                     raise OSError("WinHttpSetOption(PROXY) failed")
 
@@ -333,9 +331,11 @@ def http_date_via_proxy(hSession, url: str, timeout_ms=5000):
 def estimate_offset_via_multiple(hSession, urls):
     offsets = []
     samples = []
+    # Attach per-URL proxy
+    pinfo = get_proxy_for_url(hSession, urls[0])
     for u in urls:
         try:
-            dt, off, status = http_date_via_proxy(hSession, u)
+            dt, off, status = http_date_via_proxy(hSession, u, pinfo)
             offsets.append(off)
             samples.append((u, dt, off, status))
         except Exception as e:
@@ -418,6 +418,8 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+        input()
     except Exception as e:
         print(f"[ERROR] {e}")
+        input()
         sys.exit(1)
